@@ -1,103 +1,215 @@
-# import turtle
-#
-# def main():
-#     x = turtle.Turtle()
-#     x.penup()
-#     x.goto(-150, -150)
-#     x.pendown()
-#     x.left(90)
-#     for i in range(2):
-#         for j in range(4):
-#             x.right(90)
-#             x.pendown()
-#             x.forward(300)
-#             x.right(180)
-#             x.forward(300)
-#             x.right(90)
-#             x.penup()
-#             x.forward(100)
-#         x.backward(100)
-#         x.right(90)
-#
-# main()
-#
-#
-from turtle import Screen, Turtle
-from numpy import random
+
+import turtle
+import time
+import random
+import numpy as np
+import copy
 
 
+def draw_grid(tortoise):
 
-N = 9  # N by N grid
-LENGTH = 30  # each grid element will be LENGTH x LENGTH pixels
+    tortoise.hideturtle()
+    tortoise.speed(0)
+    direction = 1
+    tortoise.penup()
+    tortoise.goto(-N * W / 2, -N * W / 2)
+    tortoise.pendown()
 
-def grid(turtle, n, length):
-    sign = 1
-    for _ in range(2):
+    tortoise.pensize(5)
+    for i in range(4):
+        tortoise.forward(N * W)
+        tortoise.left(90)
 
-        for _ in range(n):
-            turtle.forward(length * n)
-            turtle.left(sign * 90)
-            turtle.forward(length)
-            turtle.left(sign * 90)
-            sign = 0 - sign
+    for i in range(N):
+        if i in range(0, 10, 3):
+            tortoise.pensize(3)
+        else:
+            tortoise.pensize(1)
 
-        turtle.forward(length * n)
-        [turtle.right, turtle.left][n % 2](90)
-        sign = 0 - sign
+        tortoise.forward(N * W)
+        tortoise.left(90 * direction)
+        tortoise.forward(W)
+        tortoise.left(90 * direction)
+        direction = -1 * direction
 
-# screen = Screen()
-# yertle = Turtle()
-#
-# yertle.penup()
-# yertle.goto(-N * LENGTH/2, -N * LENGTH/2)  # center our grid (optional)
-# yertle.pendown()
-#
-# grid(yertle, N, LENGTH)
-#
-# screen.exitonclick()
+    direction = 1
 
-#=================================
+    for i in range(N):
+        if i in range(2, 10, 3):
+            tortoise.pensize(3)
+        else:
+            tortoise.pensize(1)
 
-
-def removeNumber(i, j, table):
-    numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    for element in table[i]:
-        if element in numbers:
-            numbers.remove(element)
-
-    for row in table:
-        if len(row) <= j:
-            break
-        if row[j] in numbers:
-            numbers.remove(row[j])
-    print(table)
-    print(numbers)
-    return numbers
+        tortoise.forward(W)
+        tortoise.left(90 * direction)
+        tortoise.forward(N * W)
+        direction = -1 * direction
+        tortoise.left(90 * direction)
 
 
-table =[]
+def goto_xy(tortoise, x, y):
 
-for i in range(9):
-    table.append([])
-    # numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    for j in range(9):
-        randomNubmer = random.choice(removeNumber(i, j, table))
-        table[i].append(randomNubmer)
-        # numbers.remove(randomNubmer)
-
-for row in table:
-    print(row)
+    tortoise.penup()
+    tortoise.setposition(-(N / 2 - (x + 0.5)) * W, (N / 2 - (y + 1.8 * ratio / 10)) * W)
 
 
+def write_number(tortoise, num, x, y, color='black'):
+
+    goto_xy(tortoise, x, y)
+    tortoise.color(color)
+    if num:
+        tortoise.write(num, move=False, align='center', font=("Verdana", 4 * ratio, "normal"))
 
 
+def check_rc(grid, rc, orientation='r'):
+
+    possible_values = set(range(1, 10))
+    if orientation == 'r':
+        available_choices = possible_values - set(grid.tolist()[rc])
+
+    elif orientation == 'c':
+        columns = list(zip(*grid.tolist()))
+        available_choices = possible_values - set(columns[rc])
+
+    else:
+        available_choices = set()
+
+    return available_choices
 
 
+def check_square(grid, square_index):
+
+    c = (square_index % 3) * 3
+    r = (square_index // 3) * 3
+    square = grid[r: r + 3, c: c + 3]
+    possible_values = set(range(1, 10))
+    available_choices = possible_values - set(sum(square.tolist(), []))
+    return available_choices
 
 
+def initialise(tortoise):
+
+    rows, cols = (N, N)
+    # grid = [[0] * cols] * rows
+    grid = np.zeros((rows, cols), dtype=int)
+    tortoise.clear()
+    return grid
 
 
+def calculate_grid(tortoise):
+
+    grid = initialise(tortoise)
+    rc = 0
+
+    while rc - 81:
+        row = rc // 9
+        col = rc % 9
+
+        si = col // 3 if row < 3 else 3 + col // 3 if row < 6 else 6 + col // 3 if row < 9 else None
+
+        available_square_options = check_square(grid, si)
+        available_row_options = check_rc(grid, row, orientation='r')
+        available_column_options = check_rc(grid, col, orientation='c')
+
+        if not grid[row, col]:
+            candidates = available_square_options.intersection(
+                available_row_options).intersection(available_column_options)
+
+            if candidates:
+                grid[row, col] = random.choice(list(candidates))
+                write_number(tortoise, grid[row, col], col, row)
+                rc += 1
+            else:
+                rc = 0
+                grid = initialise(tortoise)
+
+    return grid
 
 
+def solve_grid(grid, tortoise):
+
+    rc = 0
+    temp_grid = copy.deepcopy(grid)
+
+    while rc - 81:
+        row = rc // 9
+        col = rc % 9
+        rc += 1
+
+        si = col // 3 if row < 3 else 3 + col // 3 if row < 6 else 6 + col // 3 if row < 9 else None
+
+        available_square_options = check_square(temp_grid, si)
+        available_row_options = check_rc(temp_grid, row, orientation='r')
+        available_column_options = check_rc(temp_grid, col, orientation='c')
+
+        if not temp_grid[row, col]:
+            candidates = available_square_options.intersection(
+                available_row_options).intersection(available_column_options)
+
+            if candidates:
+                temp_grid[row, col] = random.choice(list(candidates))
+                write_number(tortoise, temp_grid[row, col], col, row, color='green')
+            else:
+                rc = 0
+                tortoise.clear()
+                temp_grid = copy.deepcopy(grid)
+
+    return temp_grid
 
 
+def remove_numbers(grid, tortoise, difficulty='medium'):
+
+    difficulty_settings = (30, 'easy'), (40, 'medium'), (50, 'hard')
+    attempts = next(idx for idx, val in difficulty_settings if val == difficulty)
+
+    temp_grid = copy.deepcopy(grid)
+    while attempts:
+        row = random.randint(0, 8)
+        col = random.randint(0, 8)
+        if not temp_grid[row, col]:
+            continue
+        else:
+            temp_grid[row, col] = 0
+            attempts -= 1
+
+    tortoise.clear()
+    rc = 0
+    while rc - 81:
+        row = rc // 9
+        col = rc % 9
+        write_number(tortoise, temp_grid[row, col], col, row, color='black')
+        rc += 1
+
+    return temp_grid
+
+
+if __name__ == '__main__':
+
+    N = 9
+    W = 40
+
+    ratio = W // 8
+
+    turtle.tracer(0)
+    t1 = turtle.Turtle()
+    draw_grid(t1)
+
+    time.sleep(4)
+
+    t2 = turtle.Turtle()
+    full_grid = calculate_grid(t2)
+
+    time.sleep(4)
+
+    puzzle = remove_numbers(full_grid, t2)
+
+    time.sleep(4)
+
+    t3 = turtle.Turtle()
+    solved_grid = solve_grid(puzzle, t3)
+
+    time.sleep(4)
+
+    print(solved_grid == full_grid)
+
+    turtle.done()
